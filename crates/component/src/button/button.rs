@@ -202,7 +202,6 @@ pub struct Button {
     /// different things, even though they paint the same today.
     open: bool,
     toggled: Option<bool>,
-    expanded: Option<bool>,
     role: RoleOverride,
     variant: ButtonVariant,
     rounded: ButtonRounded,
@@ -255,7 +254,6 @@ impl Button {
             selected: false,
             open: false,
             toggled: None,
-            expanded: None,
             role: RoleOverride::default(),
             variant: ButtonVariant::default(),
             rounded: ButtonRounded::Medium,
@@ -520,16 +518,6 @@ impl Button {
     /// is a toggle, otherwise the button stays an ordinary push button.
     pub fn toggled(mut self, toggled: bool) -> Self {
         self.toggled = Some(toggled);
-        self
-    }
-
-    /// Expose this button as a disclosure control to assistive technology,
-    /// with `expanded` as whether the content it controls is shown.
-    ///
-    /// Only affects accessibility metadata. Use [`Selectable::open`] for the
-    /// open styling of a popup trigger.
-    pub fn expanded(mut self, expanded: bool) -> Self {
-        self.expanded = Some(expanded);
         self
     }
 
@@ -856,7 +844,6 @@ impl RenderOnce for Button {
                 gpui::accesskit::Toggled::False
             })
         })
-        .when_some(self.expanded, |this, expanded| this.aria_expanded(expanded))
         .track_focus(&focus_handle)
         .tab_index(self.tab_index)
         .tab_stop(self.tab_stop)
@@ -1542,9 +1529,8 @@ mod tests {
         assert_eq!(keyboard_clicks.get(), 2);
     }
 
-    /// A disclosure trigger keeps the application's focus handle, so focus the
-    /// application gives it shows on the button and activates it from the
-    /// keyboard, and its expanded state lands on the button's own node.
+    /// A button keeps the application's focus handle, so focus the application
+    /// gives it shows on the button and activates it from the keyboard.
     #[cfg(feature = "test-support")]
     #[gpui::test]
     fn caller_owned_focus_handle_drives_focus_and_keyboard_activation(
@@ -1566,7 +1552,6 @@ mod tests {
                     Button::new("details")
                         .label("Details")
                         .track_focus(&self.focus_handle)
-                        .expanded(true)
                         .on_click(move |_, _, _| clicks.set(clicks.get() + 1)),
                 )
             }
@@ -1591,7 +1576,6 @@ mod tests {
             gpui_base::test_support::find(window, &[], &ElementId::from("details"))
                 .expect("button is painted")
         });
-        assert_eq!(button.expanded(), Some(true));
         assert_eq!(button.focused(), Some(true));
 
         let keystroke = Keystroke::parse("enter").unwrap();
@@ -1767,7 +1751,6 @@ mod tests {
         assert!(!button.disabled);
         assert!(!button.selected);
         assert_eq!(button.toggled, None);
-        assert_eq!(button.expanded, None);
         assert!(button.focus_handle.is_none());
         assert_eq!(button.tab_index, 1);
         assert!(button.tab_stop);
